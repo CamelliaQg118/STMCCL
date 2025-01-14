@@ -1,5 +1,5 @@
 # Cluster-guided contrastive learning with masked antoencoder for spatial domain identification in spatial transcriptomics
-The complete code will be made available after the article is published.
+The complete code will be made available after the article published.
 ## Overview:
 
 __STMCCL__ (spatial transcriptomics neighbor-aware multi-view masked graph autoencoder) STMCCL
