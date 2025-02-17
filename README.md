@@ -2,7 +2,7 @@
 The complete code will be made available after the article published.
 ## Overview:
 
-__STMCCL__ (spatial transcriptomics neighbor-aware multi-view masked graph autoencoder) STMCCL
+STMCCL a novel self-supervised learning framework that jointly trains a masked autoencoder and cluster-guided contrastive learning.STMCCL has been applied to seven spatial transcriptomics datasets across platforms like 10X Visium, Stereo-seq, and Slide-seqV2, proving its capability to deliver enhanced representations for a range of downstream analyses, such as clustering, visualization, trajectory inference, and differential gene analysis.
 
 ## Requirements:
  
