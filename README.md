@@ -1,4 +1,4 @@
-# Cluster-guided contrastive learning with masked antoencoder for spatial domain identification in spatial transcriptomics
+# Cluster-guided contrastive learning with masked antoencoder for spatial domain identification based on spatial transcriptomics
 The complete code will be made available after the article published.
 ## Overview:
 
