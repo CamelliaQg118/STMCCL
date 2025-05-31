@@ -125,15 +125,15 @@ def mclust_R(adata, n_clusters, use_rep='STMCCL', key_added='STMCCL', random_see
 #         return None
 # #     try:
 # #         print("Starting mclust_R function...")
-# #         # 打印 adata 的基本信息
+# #        
 # #         print(f"adata shape: {adata.shape}")
 # #         print(f"Number of variables (genes): {adata.n_vars}")
 # #         print(f"Number of observations (cells): {adata.n_obs}")
 # #         print(f"First few var_names: {adata.var_names[:5]}")
 # #         print(f"First few obs_names: {adata.obs_names[:5]}")
 # #
-# #         # 假设的计算步骤
-# #         # 示例返回值
+# #        
+# #         
 # #         result = [None, np.random.rand(10, 10), np.random.rand(10, 10)]
 # #
 # #         print("mclust_R function completed successfully.")
@@ -145,15 +145,15 @@ def mclust_R(adata, n_clusters, use_rep='STMCCL', key_added='STMCCL', random_see
 # # def example_function(data):
 # #     print("Processing data in example_function...")
 # #     print(f"data shape: {data.shape}")
-# #     # 检查 data 的统计信息
+# #    
 # #     if isinstance(data, AnnData):
 # #         print(f"data X shape: {data.X.shape}")
-# #     # 返回一个示例值
+# #   
 # #     return np.random.rand(10, 10)
 # #
 # # def another_function(data):
 # #     print("Processing data in another_function...")
 # #     print(f"data shape: {data.shape}")
-# #     # 返回一个示例值
+# #   
 # #     return np.random.rand(10, 10)
 
