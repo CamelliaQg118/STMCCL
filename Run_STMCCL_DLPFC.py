@@ -30,7 +30,7 @@ dataset = 'DLPFC'
 slice = '151674'
 platform = '10X'
 file_fold = os.path.join('../Data', platform, dataset, slice)
-adata, adata_X = utils.load_data(dataset, file_fold)#加载特征及标签
+adata, adata_X = utils.load_data(dataset, file_fold)
 df_meta = pd.read_csv(file_fold + '/metadata.tsv', sep='\t')
 adata = utils.label_process_DLPFC(adata, df_meta)
 
@@ -87,7 +87,7 @@ print(str(slice))
 print(n_clusters)
 ARI_list.append(ARI)
 
-#绘制基本图
+
 plt.rcParams["figure.figsize"] = (3, 3)
 title = "Manual annotation (" + dataset + "#" + slice + ")"
 sc.pl.spatial(adata, img_key="hires", color=['ground_truth'], title=title, show=False)
@@ -100,10 +100,10 @@ sc.pl.spatial(adata, color=['STMCCL'], ax=axes[1], show=False)
 axes[0].set_title("Manual annotation (" + dataset + "#" + slice + ")")
 axes[1].set_title('STMCCL_Clustering: (ARI=%.4f)' % ARI)
 
-# 将两张图片拼接起来
-plt.subplots_adjust(wspace=0.5)  # 增加两幅图之间的水平间距
-plt.subplots_adjust(hspace=0.5)  # 增加两幅图之间的垂直间距,需放在保存图片前否则没有效果
-plt.savefig(savepath + 'STMCCL.jpg', dpi=300)  # 存储图片注意要在plot前面
+
+plt.subplots_adjust(wspace=0.5)  
+plt.subplots_adjust(hspace=0.5)  
+plt.savefig(savepath + 'STMCCL.jpg', dpi=300)  
 
 
 sc.pp.neighbors(adata, use_rep='STMCCL', metric='cosine')
