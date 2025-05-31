@@ -106,7 +106,7 @@ def load_data(dataset, file_fold):
 
         adata.layers['count'] = adata.X.toarray()
         adata = adata_hvg_process(adata)
-        # print("adata是否降维", adata)
+       
         adata_X = PCA(n_components=200, random_state=42).fit_transform(adata.X)
         adata.obsm['X_pca'] = adata_X
         adata_X = torch.FloatTensor(np.array(adata_X))
@@ -161,7 +161,7 @@ def graph_build(adata, adata_X, dataset):
         n = 12
         adj, edge_index = load_adj(adata, n)
         adj2 = load_adj2(adata, n)
-        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  # 平滑特征为稀疏处理后的特征矩阵
+        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  
         smooth_fea = adj2.dot(smooth_fea)
         smooth_fea = torch.FloatTensor(smooth_fea)
 
@@ -169,14 +169,14 @@ def graph_build(adata, adata_X, dataset):
         n = 10
         adj, edge_index = load_adj(adata, n)
         adj2 = load_adj2(adata, n)
-        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  # 平滑特征为稀疏处理后的特征矩阵
+        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  
         smooth_fea = adj2.dot(smooth_fea)
         
     elif dataset == 'MVC':
         n = 7
         adj, edge_index= load_adj(adata, n)
         adj2 = load_adj2(adata, n)
-        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  # 平滑特征为稀疏处理后的特征矩阵
+        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray() 
         smooth_fea = adj2.dot(smooth_fea)
         smooth_fea = torch.FloatTensor(smooth_fea)
         
@@ -184,7 +184,7 @@ def graph_build(adata, adata_X, dataset):
         n = 10
         adj, edge_index = load_adj(adata, n)
         adj2 = load_adj2(adata, n)
-        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  # 平滑特征为稀疏处理后的特征矩阵
+        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray() 
         smooth_fea = adj2.dot(smooth_fea)
         smooth_fea = torch.FloatTensor(smooth_fea)
 
