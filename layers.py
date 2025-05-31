@@ -436,28 +436,28 @@ class VGIN(nn.Module):
             self.layers.append(GINConv(nn=apply_func, train_eps=False))
             self.layers.append(GINConv(nn=apply_func, train_eps=False))
 
-        self.head = nn.Identity()  # 占位
+        self.head = nn.Identity() 
 
     def forward(self, inputs, edge_index, return_hidden=False):
         h = inputs
-        hidden_list = []  # 用于存储每层的隐藏状态
-        for l in range(self.num_layers - 1):  # 逐层传递，遍历除最后一层的图卷积层
-            h = F.dropout(h, p=self.dropout, training=self.training)  # 丢弃部分节点特征
+        hidden_list = []  
+        for l in range(self.num_layers - 1):  
+            h = F.dropout(h, p=self.dropout, training=self.training)  
             h = self.layers[l](h, edge_index)
             hidden_list.append(h)
 
         mean = F.dropout(h, p=self.dropout, training=self.training)  #
         mean = self.layers[self.num_layers - 1](mean, edge_index)
-        hidden_list.append(mean)  # 均值计算，用于生成节点潜在编码
+        hidden_list.append(mean)
 
         logstd = F.dropout(h, p=self.dropout, training=self.training)
         logstd = self.layers[self.num_layers](logstd, edge_index)
-        hidden_list.append(logstd)  # 标准差计算，用于构造表示的分布
+        hidden_list.append(logstd) 
 
         # gaussian_noise = torch.randn(inputs.size(0), self.num_hidden, device=inputs.device)
         gaussian_noise = torch.randn(inputs.size(0), mean.size(1), device=inputs.device)
         sampled_z = gaussian_noise * torch.exp(logstd) + mean
-        hidden_list.append(sampled_z)  # 生成与输入节点数相同的高斯噪声，用于随机采样潜在变量
+        hidden_list.append(sampled_z)  
 
         # output projection
         if return_hidden:
