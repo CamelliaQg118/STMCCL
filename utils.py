@@ -27,16 +27,6 @@ def adata_hvg(adata):
     return adata
 
 
-def adata_hvg1(adata):
-    sc.pp.filter_genes(adata, min_cells=50)
-    sc.pp.filter_genes(adata, min_counts=10)
-    sc.pp.normalize_total(adata, target_sum=1e6)
-    sc.pp.highly_variable_genes(adata, flavor="seurat_v3", layer='count', n_top_genes=2000)
-    adata = adata[:, adata.var['highly_variable'] ==True]
-    sc.pp.scale(adata)
-    return adata
-
-
 def adata_hvg_process(adata):
     sc.pp.normalize_total(adata, target_sum=1e6)
     sc.pp.scale(adata)
