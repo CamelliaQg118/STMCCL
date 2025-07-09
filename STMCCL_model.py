@@ -60,7 +60,7 @@ class stmccl:
             d_w=1,
             kl_w=5,
             dec_tol=0.00,
-            threshold=0.5,##############相当于我选择了一半的样本划分正负样例
+            threshold=0.5,
             epochs=800,
             dec_interval=3,
             lr=0.0001,
@@ -81,7 +81,7 @@ class stmccl:
         self.kl_w =kl_w
         self.device = device
         self.dec_tol = dec_tol
-        self.threshold = threshold #高置信度的阈值
+        self.threshold = threshold 
 
         self.adata = adata.copy()
         self.dataset = dataset
@@ -112,7 +112,7 @@ class stmccl:
         self.model.cluster_layer.data = torch.tensor(kmeans.cluster_centers_).to(self.device)
         # Initialize D
         D = Initialization_D(emb, y_pred_last, self.model.edsc_cluster_n, self.model.d)
-        D = torch.tensor(D).to(torch.float32)  # 初始化子空间
+        D = torch.tensor(D).to(torch.float32) 
         self.model.D.data = D.to(self.device)
 
         self.model.train()
@@ -134,7 +134,6 @@ class stmccl:
                 self.model.train()
                 self.optimizer.zero_grad()
                 if epoch % self.dec_interval == 0:
-                    # hg, hg_neg, emb, tmp_q, tmp_s = self.model_eval()
                     hm, hcor, emb, tmp_q, tmp_s = self.model_eval()
                     # tmp_total = np.maximum(tmp_s, tmp_q)
                     s_tilde = refined_subspace_affinity(tmp_s)
@@ -150,16 +149,16 @@ class stmccl:
                         break
 
                 if epoch > 50:
-                    high_confidence = torch.min(dis, dim=1).values  # 高置信
+                    high_confidence = torch.min(dis, dim=1).values  
                     threshold = torch.sort(high_confidence).values[int(len(high_confidence) * self.threshold)]
-                    high_confidence_idx = np.argwhere(high_confidence < threshold)[0]  # 高置信索引
+                    high_confidence_idx = np.argwhere(high_confidence < threshold)[0] 
 
                     # pos samples
                     index = torch.tensor(range(self.smooth_fea.shape[0]), device=self.device)[high_confidence_idx]
-                    y_sam = torch.tensor(predict_labels, device=self.device)[high_confidence_idx]  # 对高置信预测标签进行采样
+                    y_sam = torch.tensor(predict_labels, device=self.device)[high_confidence_idx]  # sample high confidence prediction labels
 
-                    index = index[torch.argsort(y_sam)]  # 采样索引
-                    class_num = {}  # 初始化聚类数
+                    index = index[torch.argsort(y_sam)] 
+                    class_num = {}  
                     # print("class_nu1", class_num)
                     for idx, label in enumerate(torch.sort(y_sam).values):
                         label = label.item()
@@ -185,39 +184,38 @@ class stmccl:
 
                         pos_embed_1 = torch.tensor(pos_embed_1, device=self.device)
                         pos_embed_2 = torch.tensor(pos_embed_2, device=self.device)
-                        pos_contrastive += (2 - 2 * torch.sum(pos_embed_1 * pos_embed_2, dim=1)).sum()  # 计算正样本对比损失
+                        pos_contrastive += (2 - 2 * torch.sum(pos_embed_1 * pos_embed_2, dim=1)).sum()  
 
                         hg = torch.tensor(hg, device=self.device)
                         hg_neg = torch.tensor(hg_neg, device=self.device)
                         centers_1 = torch.cat([centers_1, torch.mean(hg[now], dim=0).unsqueeze(0)], dim=0)
                         centers_2 = torch.cat([centers_2, torch.mean(hg_neg[now], dim=0).unsqueeze(0)], dim=0)
 
-                    pos_contrastive = -(pos_contrastive / self.n_clusters) # 平均对比损失
-                    if pos_contrastive == 0:  # 正样本对比损失为0则不做处理，这种情况可能是因为没有足够的正样本对，或者因为数据集中标签不足导致计算不到正样本对比损失。
+                    pos_contrastive = -(pos_contrastive / self.n_clusters) 
+                    if pos_contrastive == 0: 
                         continue
                     if len(class_num) < 2:
-                        loss_col = pos_contrastive  # 小于两个标签，即类别数目不足
+                        loss_col = pos_contrastive  
                     else:
                         centers_1 = F.normalize(centers_1, dim=1, p=2)
-                        centers_2 = F.normalize(centers_2, dim=1, p=2)  # 归一化对比损失
-                        S = centers_1 @ centers_2.T  # 计算两个聚类中心的相似度矩阵，S中每个元素表示centers_1中一个类别和centers_1另一个类别间相似度
-                        S_diag = torch.diag_embed(torch.diag(S))  # 提取相似度矩阵S的对角线元素，这些元素表示每个聚类中心与自身的相似度
-                        S = S - S_diag  # 此时的S只包含非对角线元素，表示的类别间的相似度
-                        neg_contrastive = F.mse_loss(S, torch.zeros_like(S))  # 负样例损失
-                        loss_cosl = pos_contrastive+neg_contrastive  # 最终损失
+                        centers_2 = F.normalize(centers_2, dim=1, p=2)  
+                        S = centers_1 @ centers_2.T  
+                        S_diag = torch.diag_embed(torch.diag(S))  
+                        S = S - S_diag 
+                        neg_contrastive = F.mse_loss(S, torch.zeros_like(S))  
+                        loss_cosl = pos_contrastive+neg_contrastive  
 
                     list_pos.append(pos_contrastive.detach().cpu().numpy())
                     list_neg.append(neg_contrastive.detach().cpu().numpy())
                     # print('loss_pos = {:.5f}'.format(pos_contrastive), ' loss_neg = {:.5f}'.format(neg_contrastive))
 
-                else:  # 前50个元素
-                    S = hg @ hg_neg.T  # 相似度矩阵由两嵌入组层
+                else:  
+                    S = hg @ hg_neg.T  
                     S = torch.tensor(S, device=self.device)
                     loss_cosl = F.mse_loss(S, expected_output)
 
                 torch.set_grad_enabled(True)
                 _, _, _, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
-                # _, _, _, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
                 d_cons1 = D_constraint1()  # 实例化约束1
                 d_cons2 = D_constraint2()  # 实例化约束2
                 loss_d1 = d_cons1(self.model.D)
@@ -228,18 +226,15 @@ class stmccl:
                 loss_kl_s = F.kl_div(s.log(), torch.tensor(s_tilde).to(self.device)).to(self.device)
                 loss_kl = loss_kl_s + loss_kl_q
 
-                # loss_tatal = self.rec_w*loss_rec+self.latent_w*loss_latent+self.cos_w*loss_cos + self.kl_w * loss_kl
                 loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.cos_w * loss_cos + self.kl_w * loss_kl + \
                              self.d_w * loss_d + self.cosl_w * loss_cosl
-                # loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.kl_w * loss_kl + \
-                #              self.d_w * loss_d + self.cosl_w * loss_cosl
 
                 loss_tatal.backward()
                 self.optimizer.step()
 
                 list_rec.append(loss_rec.detach().cpu().numpy())
                 list_latent.append(loss_latent.detach().cpu().numpy())
-                # list_cos.append(loss_cos.detach().cpu().numpy())
+                list_cos.append(loss_cos.detach().cpu().numpy())
                 list_d.append(loss_d.detach().cpu().numpy())
                 list_kl.append(loss_kl.detach().cpu().numpy())
                 list_cosl.append(loss_cosl.detach().cpu().numpy())
@@ -251,7 +246,6 @@ class stmccl:
                 kmeans = KMeans(n_clusters=self.n_clusters).fit(emb)
                 idx = kmeans.labels_
                 self.adata.obsm['STMCCL'] = emb
-                # adata1 = ST_NMAE.mclust_R(self.adata, self.n_clusters, use_rep='STNMAE', key_added='STNMAE', random_seed=self.random_seed)
                 labels = self.adata.obs['ground']
                 labels = pd.to_numeric(labels, errors='coerce')
                 labels = pd.Series(labels).fillna(0).to_numpy()
@@ -290,16 +284,16 @@ class stmccl:
                         break
 
                 if epoch > 50:
-                    high_confidence = torch.min(dis, dim=1).values  # 高置信
+                    high_confidence = torch.min(dis, dim=1).values 
                     threshold = torch.sort(high_confidence).values[int(len(high_confidence) * self.threshold)]
-                    high_confidence_idx = np.argwhere(high_confidence < threshold)[0]  # 高置信索引
+                    high_confidence_idx = np.argwhere(high_confidence < threshold)[0]
 
                     # pos samples
                     index = torch.tensor(range(self.smooth_fea.shape[0]), device=self.device)[high_confidence_idx]
-                    y_sam = torch.tensor(predict_labels, device=self.device)[high_confidence_idx]  # 对高置信预测标签进行采样
+                    y_sam = torch.tensor(predict_labels, device=self.device)[high_confidence_idx]  
 
-                    index = index[torch.argsort(y_sam)]  # 采样索引
-                    class_num = {}  # 初始化聚类数
+                    index = index[torch.argsort(y_sam)] 
+                    class_num = {}  
                     # print("class_nu1", class_num)
                     for idx, label in enumerate(torch.sort(y_sam).values):
                         label = label.item()
@@ -325,41 +319,41 @@ class stmccl:
 
                         pos_embed_1 = torch.tensor(pos_embed_1, device=self.device)
                         pos_embed_2 = torch.tensor(pos_embed_2, device=self.device)
-                        pos_contrastive += (2 - 2 * torch.sum(pos_embed_1 * pos_embed_2, dim=1)).sum()  # 计算正样本对比损失
+                        pos_contrastive += (2 - 2 * torch.sum(pos_embed_1 * pos_embed_2, dim=1)).sum() 
 
                         hg = torch.tensor(hg, device=self.device)
                         hg_neg = torch.tensor(hg_neg, device=self.device)
                         centers_1 = torch.cat([centers_1, torch.mean(hg[now], dim=0).unsqueeze(0)], dim=0)
                         centers_2 = torch.cat([centers_2, torch.mean(hg_neg[now], dim=0).unsqueeze(0)], dim=0)
 
-                    pos_contrastive = -(pos_contrastive / self.n_clusters)  # 平均对比损失
-                    if pos_contrastive == 0:  # 正样本对比损失为0则不做处理，这种情况可能是因为没有足够的正样本对，或者因为数据集中标签不足导致计算不到正样本对比损失。
+                    pos_contrastive = -(pos_contrastive / self.n_clusters) 
+                    if pos_contrastive == 0: 
                         continue
                     if len(class_num) < 2:
-                        loss_col = pos_contrastive  # 小于两个标签，即类别数目不足
+                        loss_col = pos_contrastive  
                     else:
                         centers_1 = F.normalize(centers_1, dim=1, p=2)
-                        centers_2 = F.normalize(centers_2, dim=1, p=2)  # 归一化对比损失
-                        S = centers_1 @ centers_2.T  # 计算两个聚类中心的相似度矩阵，S中每个元素表示centers_1中一个类别和centers_1另一个类别间相似度
-                        S_diag = torch.diag_embed(torch.diag(S))  # 提取相似度矩阵S的对角线元素，这些元素表示每个聚类中心与自身的相似度
-                        S = S - S_diag  # 此时的S只包含非对角线元素，表示的类别间的相似度
-                        neg_contrastive = F.mse_loss(S, torch.zeros_like(S))  # 负样例损失
-                        loss_cosl = pos_contrastive + neg_contrastive  # 最终损失
+                        centers_2 = F.normalize(centers_2, dim=1, p=2) 
+                        S = centers_1 @ centers_2.T  
+                        S_diag = torch.diag_embed(torch.diag(S))  
+                        S = S - S_diag 
+                        neg_contrastive = F.mse_loss(S, torch.zeros_like(S)) 
+                        loss_cosl = pos_contrastive + neg_contrastive 
 
                     # list_pos.append(pos_contrastive.detach().cpu().numpy())
                     # list_neg.append(neg_contrastive.detach().cpu().numpy())
                     # print('loss_pos = {:.5f}'.format(pos_contrastive), ' loss_neg = {:.5f}'.format(neg_contrastive))
 
-                else:  # 前50个元素
-                    S = hg @ hg_neg.T  # 相似度矩阵由两嵌入组层
+                else:  
+                    S = hg @ hg_neg.T  
                     S = torch.tensor(S, device=self.device)
                     loss_cosl = F.mse_loss(S, expected_output)
 
                 torch.set_grad_enabled(True)
                 _, _, _, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
-                # _, _, _, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
-                d_cons1 = D_constraint1()  # 实例化约束1
-                d_cons2 = D_constraint2()  # 实例化约束2
+
+                d_cons1 = D_constraint1()  
+                d_cons2 = D_constraint2()  
                 loss_d1 = d_cons1(self.model.D)
                 loss_d2 = d_cons2(self.model.D, self.model.d, self.model.edsc_cluster_n)
                 loss_d = loss_d1 + loss_d2
@@ -368,11 +362,9 @@ class stmccl:
                 loss_kl_s = F.kl_div(s.log(), torch.tensor(s_tilde).to(self.device)).to(self.device)
                 loss_kl = loss_kl_s + loss_kl_q
 
-                # loss_tatal = self.rec_w*loss_rec+self.latent_w*loss_latent+self.cos_w*loss_cos + self.kl_w * loss_kl
                 loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.cos_w * loss_cos + self.kl_w * loss_kl + \
                              self.d_w * loss_d + self.cosl_w * loss_cosl
-                # loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.kl_w * loss_kl + \
-                #              self.d_w * loss_d + self.cosl_w * loss_cosl
+
 
                 loss_tatal.backward()
                 self.optimizer.step()
@@ -391,7 +383,6 @@ class stmccl:
 
     def model_eval(self):
         self.model.eval()
-        # Hm, Hcor, emb, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
         Hm, Hcor, emb, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
         emb = emb.data.cpu().numpy()
         q = q.data.cpu().numpy()
