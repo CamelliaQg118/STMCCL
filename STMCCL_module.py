@@ -28,7 +28,7 @@ class GCN(nn.Module):
         return x
 
 
-class STMCCL_module(nn.Module):#SDER大框架
+class STMCCL_module(nn.Module):
     def __init__(
             self,
             input_dim,
@@ -41,7 +41,7 @@ class STMCCL_module(nn.Module):#SDER大框架
             dropout=0.2,
             mask_rate=0.8,
             remask_rate=0.8,
-            drop_edge_rate=0.1,#但在GAMC中掩码比例为0.5，掩码边为0.1
+            drop_edge_rate=0.1,
             alpha=0.1,
             num_layers=2,
             eta=1,
@@ -53,7 +53,7 @@ class STMCCL_module(nn.Module):#SDER大框架
             remask_method='random',
             use_bn='true',
             device='cuda:0'
-    ):#指定参数
+    ):
         super(STMCCL_module, self).__init__()
         self.input_dim = input_dim
         self.latent_dim = latent_dim
@@ -140,17 +140,20 @@ class STMCCL_module(nn.Module):#SDER大框架
         # adj, x_per = self.permutation(adj, x, adata)
         use_edge_index1, masked_edges1 = dropout_edge(edge_index, self.drop_edge_rate)
         use_edge_index2, masked_edges2 = dropout_edge(edge_index, self.drop_edge_rate)
-
+        
+        #representation learning
         Gf1, all_hidden_1 = self.encode_edge(X1, use_edge_index1, return_hidden=True)
         Gf2, all_hidden_2 = self.encode_edge(X2, use_edge_index2, return_hidden=True)
         Hmask = Gf1
         Hcor = Gf2
 
+        #fusing embedding
         H = self.encode_fea(Zf1, adj)
         emb1 = torch.cat([H, (Hmask + Hcor) / 2, Zf1], dim=1).to(self.device)
         linear = nn.Linear(self.emb_dim, self.output_dim).to(self.device)
         emb = linear(emb1).to(self.device)
 
+        #representation predicting
         with torch.no_grad():
             X_target = self.encode_generate(X, adj)
             x_target = self.projector_generate(X_target[keep_nodes1])
@@ -158,28 +161,14 @@ class STMCCL_module(nn.Module):#SDER大框架
         x_pred = self.predictor(X_pred)
         loss_latent = sce_loss(x_pred, x_target, 1)
 
-        # # ---- attribute reconstruction ----
-        # loss_rec_all = 0
+        # # ---- feature reconstruction ----
         H1 = Hmask.clone()
-        # H2 = Hg_cor.clone()
-        Hg_rec, _, _ = self.random_remask(adj, H1, self.remask_rate)#进行重掩码
-        rec1 = self.decoder(Hg_rec, adj)#解码器重建输入，即生成Z
+        Hg_rec, _, _ = self.random_remask(adj, H1, self.remask_rate)
+        rec1 = self.decoder(Hg_rec, adj)
         x_init1 = X[mask_nodes1]
         x_rec1 = rec1[mask_nodes1]
-        #
-        loss_rec = self.loss_type1(x_init1, x_rec1) #+ self.loss_type1(x_init2, x_rec2)
-        # # #
-        # #cos loss
-        # rec_1 = global_mean_pool(rec1, None)[0]
-        # rec_2 = global_mean_pool(rec2, None)[0]
-        # loss_cos = torch.cosine_similarity(rec_1, rec_2, dim=0)
+        loss_rec = self.loss_type1(x_init1, x_rec1) 
 
-        # emb_rec, _, _ = self.random_remask(adj, emb, self.remask_rate)
-        # # print("H_i维度",  locals()[f'H_{i}'].size())
-        # emb_rec = self.decoder(emb_rec, adj)
-        # x_init = X[mask_nodes1]
-        # x_rec = emb_rec[mask_nodes1]
-        # loss_rec = self.loss_type1(x_init, x_rec)
 
         q = 1.0 / ((1.0 + torch.sum((emb.unsqueeze(1) - self.cluster_layer) ** 2, dim=2) / self.alpha))
         q = q.pow((self.alpha + 1.0) / 2.0)
@@ -210,18 +199,6 @@ class STMCCL_module(nn.Module):#SDER大框架
             raise NotImplementedError
         return criterion
 
-    def cos_d_loss(self, x, x_neg):
-        T = 0.2
-        batch_size, _ = x.size()
-        x_abs = x.norm(dim=1)
-        x_aug_abs = x_neg.norm(dim=1)
-        sim_matrix = torch.einsum('ik,jk->ij', x, x_neg) / torch.einsum('i,j->ij', x_abs, x_aug_abs)
-        sim_matrix = torch.exp(sim_matrix / T)
-        pos_sim = sim_matrix[range(batch_size), range(batch_size)]
-        loss = pos_sim / (sim_matrix.sum(dim=1) - pos_sim)
-        loss = - torch.log(loss).mean()
-        return loss
-
     def fea_permutation(self, adj, x, adata):
         x_a = permutation(x)
         use_adj = adj.clone()
@@ -234,10 +211,6 @@ class STMCCL_module(nn.Module):#SDER大框架
             mod = GCN(in_dim, num_hidden, out_dim, dropout)
         elif m_type == "GIN":
             mod = GIN(in_dim, num_hidden, out_dim, dropout)
-        elif m_type == "GAT":
-            mod = GAT(in_dim, num_hidden, out_dim, dropout)
-        elif m_type == "VGIN":
-            mod = VGIN(in_dim, num_hidden, out_dim, dropout)
         elif m_type == "mlp":
             mod = nn.Sequential(nn.Linear(in_dim, num_hidden * 2), nn.PReLU(), nn.Dropout(0.2), nn.Linear(num_hidden * 2, out_dim))
         elif m_type == "linear":
@@ -271,41 +244,24 @@ class STMCCL_module(nn.Module):#SDER大框架
         rep[remask_nodes] += self.dec_mask_token
         return rep, remask_nodes, rekeep_nodes
 
-    def attention(self, x):
-        layer_, attentions = [], []
-        x = self.fcs[0](x)
-        if self.use_bn:
-            x = self.bns[0](x)
-        x = F.relu(x)
-        layer_.append(x)
-        for i, conv in enumerate(self.convs):
-            x, attn = self.conv(x, x, output_attn=True)
-            attentions.append(attn)
-            if self.use_residual:
-                x = self.alpha * x + (1 - self.alpha) * layer_[i]
-            if self.use_bn:
-                x = self.bns[i + 1](x)
-            layer_.append(x)
-        return torch.stack(attentions, dim=0)
-
 
 def dropout_edge(edge_index, p=0.5, force_undirected=False):
-    if p < 0. or p > 1.:#检查边的取值范围
+    if p < 0. or p > 1.:
         raise ValueError(f'Dropout probability has to be between 0 and 1 '
                          f'(got {p}')
 
-    row, col = edge_index#将这个数组的值一个维和第二维赋值给左边两个变量
+    row, col = edge_index
 
-    edge_mask = torch.rand(row.size(0), device=edge_index.device) >= p#生成与边数相同的随机数，
+    edge_mask = torch.rand(row.size(0), device=edge_index.device) >= p
 
-    if force_undirected:#是否强制保持图为无向图，确保便是无向的，为false则说明保持原状，之前是有向图则还是有向的，之前无向则还是无向图
+    if force_undirected:
         edge_mask[row > col] = False
 
-    edge_index = edge_index[:, edge_mask]#生成新的边索引矩阵
+    edge_index = edge_index[:, edge_mask]
 
-    if force_undirected:#如果保持为无向图，则将每条边翻转
+    if force_undirected:
         edge_index = torch.cat([edge_index, edge_index.flip(0)], dim=1)
-        edge_mask = edge_mask.nonzero().repeat((2, 1)).squeeze()#将原边和翻转后的边拼接，得到无向的索引
+        edge_mask = edge_mask.nonzero().repeat((2, 1)).squeeze()
 
     return edge_index, edge_mask
 
