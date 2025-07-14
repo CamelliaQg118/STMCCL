@@ -215,7 +215,7 @@ class stmccl:
                     loss_cosl = F.mse_loss(S, expected_output)
 
                 torch.set_grad_enabled(True)
-                _, _, _, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
+                _, _, _, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
                 d_cons1 = D_constraint1()  # 实例化约束1
                 d_cons2 = D_constraint2()  # 实例化约束2
                 loss_d1 = d_cons1(self.model.D)
@@ -226,8 +226,8 @@ class stmccl:
                 loss_kl_s = F.kl_div(s.log(), torch.tensor(s_tilde).to(self.device)).to(self.device)
                 loss_kl = loss_kl_s + loss_kl_q
 
-                loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.cos_w * loss_cos + self.kl_w * loss_kl + \
-                             self.d_w * loss_d + self.cosl_w * loss_cosl
+                loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.cosl_w * loss_cosl + self.kl_w * loss_kl + \
+                             self.d_w * loss_d
 
                 loss_tatal.backward()
                 self.optimizer.step()
@@ -350,7 +350,7 @@ class stmccl:
                     loss_cosl = F.mse_loss(S, expected_output)
 
                 torch.set_grad_enabled(True)
-                _, _, _, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
+                _, _, _, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
 
                 d_cons1 = D_constraint1()  
                 d_cons2 = D_constraint2()  
@@ -362,7 +362,7 @@ class stmccl:
                 loss_kl_s = F.kl_div(s.log(), torch.tensor(s_tilde).to(self.device)).to(self.device)
                 loss_kl = loss_kl_s + loss_kl_q
 
-                loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.cos_w * loss_cos + self.kl_w * loss_kl + \
+                loss_tatal = self.rec_w * loss_rec + self.latent_w * loss_latent + self.kl_w * loss_kl + \
                              self.d_w * loss_d + self.cosl_w * loss_cosl
 
 
@@ -383,7 +383,7 @@ class stmccl:
 
     def model_eval(self):
         self.model.eval()
-        Hm, Hcor, emb, q, s, loss_rec, loss_latent, loss_cos = self.model(self.adata, self.X, self.adj, self.edge_index)
+        Hm, Hcor, emb, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
         emb = emb.data.cpu().numpy()
         q = q.data.cpu().numpy()
         s = s.data.cpu().numpy()
