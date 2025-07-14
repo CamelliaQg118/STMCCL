@@ -76,6 +76,7 @@ class STMCCL_module(nn.Module):
         self.input_latent = output_dim
         self.edsc_cluster_n = nclass
         self.emb_dim = output_dim*3
+        self.embout_dim = output_dim*3
 
         self.nclass = nclass
         self.dropout = dropout
@@ -96,7 +97,7 @@ class STMCCL_module(nn.Module):
         self.drop_edge_rate = drop_edge_rate
         self.eta = eta
         self.d = d
-        self.d_dim = output_dim
+        self.d_dim = output_dim*3
 
         self.gcn = GCN(self.input_dim, self.latent_dim, self.output_dim, self.dropout)
         self.encoder = Encodeer_Model(self.input_dim, self.latent_hidden1, self.output_dim, self.p_drop, self.device)
@@ -116,7 +117,7 @@ class STMCCL_module(nn.Module):
         self.loss_type1 = self.setup_loss_fn(loss_fn='sce')
         self.loss_type2 = self.setup_loss_fn(loss_fn='mse')
 
-        self.cluster_layer = Parameter(torch.Tensor(self.nclass, output_dim))
+        self.cluster_layer = Parameter(torch.Tensor(self.nclass, output_dim*3))
         self.D = Parameter(torch.Tensor(self.d_dim, self.edsc_cluster_n))
         # print("D", self.D.size())
         # print("d", self.d)
@@ -150,7 +151,7 @@ class STMCCL_module(nn.Module):
         #fusing embedding
         H = self.encode_fea(Zf1, adj)
         emb1 = torch.cat([H, (Hmask + Hcor) / 2, Zf1], dim=1).to(self.device)
-        linear = nn.Linear(self.emb_dim, self.output_dim).to(self.device)
+        linear = nn.Linear(self.emb_dim, self.embout_dim).to(self.device)
         emb = linear(emb1).to(self.device)
 
         #representation predicting
