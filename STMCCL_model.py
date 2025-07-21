@@ -257,9 +257,7 @@ class stmccl:
                     idx_max = idx
                     emb_max = emb
             print("epoch_max", epoch_max)
-            print("ARI=======", ari_max)
             nmi_res = metrics.normalized_mutual_info_score(labels, idx_max)
-            print("NMI=======", nmi_res)
             self.adata.obs['STMCCL'] = idx_max.astype(str)
             self.adata.obsm['emb'] = emb_max
             return self.adata.obsm['emb'], self.adata.obs['STMCCL']
