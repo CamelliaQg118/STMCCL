@@ -60,46 +60,6 @@ def load_data(dataset, file_fold):
         sc.pp.scale(adata)
         adata_X = PCA(n_components=200, random_state=42).fit_transform(adata.X)
         adata.obsm['X_pca'] = adata_X
-        
-    elif dataset == 'MOB':
-        savepath = '../Result/MOB_Stereo/'
-        if not os.path.exists(savepath):
-            os.mkdir(savepath)
-        counts_file = os.path.join(file_fold, 'RNA_counts.tsv')
-        counts = pd.read_csv(counts_file, sep='\t', index_col=0).T
-        counts.index = [f'Spot_{i}' for i in counts.index]
-        adata = sc.AnnData(counts)
-        adata.X = csr_matrix(adata.X, dtype=np.float32)
-        adata.var_names_make_unique()
-
-        pos_file = os.path.join(file_fold, 'position.tsv')
-        coor_df = pd.read_csv(pos_file, sep='\t')
-        coor_df.index = coor_df['label'].map(lambda x: 'Spot_' + str(x))
-        coor_df = coor_df.loc[:, ['x', 'y']]
-        # print('adata.obs_names', adata.obs_names)
-        coor_df = coor_df.loc[adata.obs_names, ['y', 'x']]
-        adata.obs['x'] = coor_df['x'].tolist()
-        adata.obs['y'] = coor_df['y'].tolist()
-        adata.obsm["spatial"] = coor_df.to_numpy()
-        print(adata)
-
-        barcode_file = pd.read_csv(os.path.join(file_fold, 'used_barcodes.txt'), sep='\t', header=None)
-        used_barcode = barcode_file[0]
-        adata = adata[used_barcode]
-        adata.var_names_make_unique()
-
-        adata.obs['total_exp'] = adata.X.sum(axis=1)
-        fig, ax = plt.subplots()
-        sc.pl.spatial(adata, color='total_exp', spot_size=40, show=False, ax=ax)
-        ax.invert_yaxis()
-        plt.savefig(savepath + 'STMCCL_stereo_MOB1.jpg', dpi=600)
-
-        adata.layers['count'] = adata.X.toarray()
-        adata = adata_hvg_process(adata)
-       
-        adata_X = PCA(n_components=200, random_state=42).fit_transform(adata.X)
-        adata.obsm['X_pca'] = adata_X
-        adata_X = torch.FloatTensor(np.array(adata_X))
 
     elif dataset == 'MVC':
         adata = sc.read(file_fold + '/STARmap_20180505_BY3_1k.h5ad')
@@ -155,13 +115,6 @@ def graph_build(adata, adata_X, dataset):
         smooth_fea = adj2.dot(smooth_fea)
         smooth_fea = torch.FloatTensor(smooth_fea)
 
-    elif dataset == 'MBO':
-        n = 10
-        adj, edge_index = load_adj(adata, n)
-        adj2 = load_adj2(adata, n)
-        smooth_fea = csr_matrix(adata.obsm['X_pca']).toarray()  
-        smooth_fea = adj2.dot(smooth_fea)
-        
     elif dataset == 'MVC':
         n = 7
         adj, edge_index= load_adj(adata, n)
