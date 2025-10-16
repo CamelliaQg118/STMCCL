@@ -216,8 +216,8 @@ class stmccl:
 
                 torch.set_grad_enabled(True)
                 _, _, _, q, s, loss_rec, loss_latent = self.model(self.adata, self.X, self.adj, self.edge_index)
-                d_cons1 = D_constraint1()  # 实例化约束1
-                d_cons2 = D_constraint2()  # 实例化约束2
+                d_cons1 = D_constraint1()  
+                d_cons2 = D_constraint2() 
                 loss_d1 = d_cons1(self.model.D)
                 loss_d2 = d_cons2(self.model.D, self.model.d, self.model.edsc_cluster_n)
                 loss_d = loss_d1 + loss_d2
