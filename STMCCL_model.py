@@ -34,11 +34,9 @@ class D_constraint2(torch.nn.Module):
     def forward(self, d, dim, n_clusters):
         S = torch.ones(d.shape[1], d.shape[1]).cuda()
         zero = torch.zeros(dim, dim)
-        # print("s", S.size())
-        # print("zero", zero.size())
 
         for i in range(n_clusters):
-            # print(f"dim: {dim}, n_clusters: {n_clusters}, d.shape: {d.shape}")
+       
             S[i * dim:(i + 1) * dim, i * dim:(i + 1) * dim] = zero
         loss_d2_constraint = torch.norm(torch.mm(d.t(), d) * S)
         return 1e-3 * loss_d2_constraint
@@ -159,10 +157,10 @@ class stmccl:
 
                     index = index[torch.argsort(y_sam)] 
                     class_num = {}  
-                    # print("class_nu1", class_num)
+                   
                     for idx, label in enumerate(torch.sort(y_sam).values):
                         label = label.item()
-                        # print(f"Iteration {idx}: label = {label}")
+                      
                         if label in class_num:
                             class_num[label] += 1
                         else:
@@ -207,7 +205,6 @@ class stmccl:
 
                     list_pos.append(pos_contrastive.detach().cpu().numpy())
                     list_neg.append(neg_contrastive.detach().cpu().numpy())
-                    # print('loss_pos = {:.5f}'.format(pos_contrastive), ' loss_neg = {:.5f}'.format(neg_contrastive))
 
                 else:  
                     S = hg @ hg_neg.T  
@@ -232,16 +229,6 @@ class stmccl:
                 loss_tatal.backward()
                 self.optimizer.step()
 
-                list_rec.append(loss_rec.detach().cpu().numpy())
-                list_latent.append(loss_latent.detach().cpu().numpy())
-                list_cos.append(loss_cos.detach().cpu().numpy())
-                list_d.append(loss_d.detach().cpu().numpy())
-                list_kl.append(loss_kl.detach().cpu().numpy())
-                list_cosl.append(loss_cosl.detach().cpu().numpy())
-                # print('loss_rec = {:.5f}'.format(loss_rec), #'loss_cos= {:.5f}'.format(loss_cos),
-                #       'loss_latent = {:.5f}'.format(loss_latent), 'loss_d= {:.5f}'.format(loss_d),
-                #       'loss_kl = {:.5f}'.format(loss_kl), 'loss_cosl = {:.5f}'.format(loss_cosl),
-                #       ' loss_total = {:.5f}'.format(loss_tatal))
 
                 kmeans = KMeans(n_clusters=self.n_clusters).fit(emb)
                 idx = kmeans.labels_
@@ -292,10 +279,10 @@ class stmccl:
 
                     index = index[torch.argsort(y_sam)] 
                     class_num = {}  
-                    # print("class_nu1", class_num)
+                   
                     for idx, label in enumerate(torch.sort(y_sam).values):
                         label = label.item()
-                        # print(f"Iteration {idx}: label = {label}")
+                    
                         if label in class_num:
                             class_num[label] += 1
                         else:
@@ -338,10 +325,6 @@ class stmccl:
                         neg_contrastive = F.mse_loss(S, torch.zeros_like(S)) 
                         loss_cosl = pos_contrastive + neg_contrastive 
 
-                    # list_pos.append(pos_contrastive.detach().cpu().numpy())
-                    # list_neg.append(neg_contrastive.detach().cpu().numpy())
-                    # print('loss_pos = {:.5f}'.format(pos_contrastive), ' loss_neg = {:.5f}'.format(neg_contrastive))
-
                 else:  
                     S = hg @ hg_neg.T  
                     S = torch.tensor(S, device=self.device)
@@ -366,16 +349,6 @@ class stmccl:
 
                 loss_tatal.backward()
                 self.optimizer.step()
-                # list_rec.append(loss_rec.detach().cpu().numpy())
-                # list_latent.append(loss_latent.detach().cpu().numpy())
-                # # list_cos.append(loss_cos.detach().cpu().numpy())
-                # list_d.append(loss_d.detach().cpu().numpy())
-                # list_kl.append(loss_kl.detach().cpu().numpy())
-                # list_cosl.append(loss_cosl.detach().cpu().numpy())
-                # print('loss_rec = {:.5f}'.format(loss_rec),  # 'loss_cos= {:.5f}'.format(loss_cos),
-                #       'loss_latent = {:.5f}'.format(loss_latent), 'loss_d= {:.5f}'.format(loss_d),
-                #       'loss_kl = {:.5f}'.format(loss_kl), 'loss_cosl = {:.5f}'.format(loss_cosl),
-                #       ' loss_total = {:.5f}'.format(loss_tatal))
 
             return emb
 
